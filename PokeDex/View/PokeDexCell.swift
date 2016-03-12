@@ -20,6 +20,10 @@ class PokeDexCell: UICollectionViewCell {
     var pokemon : Pokemon {
         return self._pokemon
     }
+    
+    var thumbImg : UIImageView {
+        return self._thumbImg
+    }
 
     required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
@@ -35,19 +39,14 @@ class PokeDexCell: UICollectionViewCell {
         self._nameLabel.text = pokemon.name.capitalizedString
         
         // set pokemon image thumbnail by loading the image with Nuke
-        let url = "\(Constants.URL_POKEMON_IMG)\( self._pokemon.pokeId).png"
+        let url = "\(Constants.URL_POKEMON_IMG)\(self._pokemon.pokeId!).png"
         var request = ImageRequest(URLRequest: NSURLRequest(URL: NSURL(string: url)!))
         request.priority = NSURLSessionTaskPriorityHigh
-        
-        Nuke.taskWith(request) {
-            // hide progress view
-            self._progressView.stopAnimating()
-            
-            // set and show pokemon image
-            self._thumbImg.image = $0.image
-            self._thumbImg.hidden = false
-            
-            }.resume()
+        self._thumbImg.nk_setImageWith(request)
+    }
+    
+    func stop() {
+        self._thumbImg.nk_cancelLoading()
     }
     
     
