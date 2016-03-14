@@ -13,7 +13,6 @@ class PokeDexCell: UICollectionViewCell {
 
     @IBOutlet weak var _thumbImg : UIImageView!
     @IBOutlet weak var _nameLabel : UILabel!
-    @IBOutlet weak var _progressView : UIActivityIndicatorView!
     
     private var _pokemon: Pokemon!
     
@@ -39,28 +38,7 @@ class PokeDexCell: UICollectionViewCell {
         self._nameLabel.text = pokemon.name.capitalizedString
         
         // set pokemon image thumbnail by loading the image with Nuke
-        let url = "\(Constants.URL_POKEMON_IMG)\(self._pokemon.pokeId!).png"
-        var request = ImageRequest(URLRequest: NSURLRequest(URL: NSURL(string: url)!))
-        request.priority = NSURLSessionTaskPriorityHigh
-        self._thumbImg.nk_setImageWith(request)
-    }
-    
-    func stop() {
-        self._thumbImg.nk_cancelLoading()
-    }
-    
-    
-    func showError(error: NSError) {
-        self._nameLabel.text = "ERROR!"
-        print("Error loading pokemon: \(error.code) - \(error.description)")
-    }
-    
-    func showLoading() {
-        // hide image view
-        self._thumbImg.hidden = true
         
-        // show progress view
-        self._progressView.hidesWhenStopped = true
-        self._progressView.startAnimating()
+        self._thumbImg.image = UIImage(named: "\(self._pokemon.pokeId!)")
     }
 }

@@ -11,7 +11,7 @@ import Foundation
 class Constants {
     
     // Pokemon API URL's
-    private static let URL_BASE = "https://pokeapi.co/"
-    static let URL_POKEMON = URL_BASE + "api/v2/pokemon/"
-    static let URL_POKEMON_IMG = URL_BASE + "media/sprites/pokemon/"
+    static let URL_BASE = "https://pokeapi.co"
+    static let URL_POKEMON = URL_BASE + "/api/v1/pokemon/"
+    static let URL_POKEMON_IMG = URL_BASE + "/media/sprites/pokemon/"
 }

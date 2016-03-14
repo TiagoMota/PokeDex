@@ -7,49 +7,112 @@
 //
 
 import UIKit
-import Alamofire
+import AVFoundation
 
 class ViewController: UIViewController, UICollectionViewDelegate,
-UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
+UICollectionViewDataSource, UICollectionViewDelegateFlowLayout, UISearchBarDelegate {
 
-    @IBOutlet weak var _collectionView: UICollectionView!
+    @IBOutlet weak var collectionView: UICollectionView!
+    @IBOutlet weak var searchBar: UISearchBar!
     
-    private var _pokedex = [Int : Pokemon]()
+    private var pokedex = [Pokemon]()
+    private var filteredPokedex = [Pokemon]()
+    private var musicPlayer : AVAudioPlayer?
+    private var isSearchMode = false
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        self._collectionView.delegate = self
-        self._collectionView.dataSource = self
+        self.collectionView.delegate = self
+        self.collectionView.dataSource = self
+        self.searchBar.delegate = self
+        self.searchBar.returnKeyType = UIReturnKeyType.Done
+        
+        //let tap: UITapGestureRecognizer = UITapGestureRecognizer(target: self, action: "dismissKeyboard")
+        //view.addGestureRecognizer(tap)
+        
+        loadPokedex()
+        
+        loadMusic()
+    }
+    
+    func dismissKeyboard() {
+        view.endEditing(true)
+    }
+    
+    func loadPokedex() {
+        let path = NSBundle.mainBundle().pathForResource("pokemon", ofType: "csv")!
+        do {
+            let csv = try CSV(contentsOfURL: path)
+            
+            for row in csv.rows {
+                let pokemon = Pokemon(name: row["identifier"]!, pokeId: Int(row["id"]!)!)
+                self.pokedex.append(pokemon)
+            }
+            
+        } catch let err as NSError {
+            print(err.debugDescription)
+        }
     }
 
+    func loadMusic() {
+        let path = NSURL(string: NSBundle.mainBundle().pathForResource("music", ofType: "mp3")!)!
+        do {
+            self.musicPlayer = try AVAudioPlayer(contentsOfURL: path)
+            self.musicPlayer?.play()
+            
+        } catch let err as NSError {
+            print(err.debugDescription)
+        }
+    }
+    
+    @IBAction func pressedMusicBtn(sender: UIButton) {
+        if self.musicPlayer!.playing {
+            self.musicPlayer!.stop()
+            sender.alpha = 0.2
+        } else {
+            self.musicPlayer!.play()
+            sender.alpha = 1.0
+        }
+    }
+    
+    
+    func searchBar(searchBar: UISearchBar, textDidChange searchText: String) {
+        
+        if searchBar.text == nil || searchBar.text == "" {
+            isSearchMode = false
+            dismissKeyboard()
+        } else {
+            isSearchMode = true
+            let lower = searchBar.text!.lowercaseString
+            filteredPokedex = pokedex.filter({
+                $0.name.rangeOfString(lower) != nil
+            })
+        }
+        
+        collectionView.reloadData()
+    }
+    
+    func searchBarSearchButtonClicked(searchBar: UISearchBar) {
+        dismissKeyboard()
+    }
+    
+    
     
     func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
         
         if let cell = collectionView.dequeueReusableCellWithReuseIdentifier("PokeDexCell", forIndexPath: indexPath) as? PokeDexCell {
             
-            if let pokemon = self._pokedex[indexPath.row + 1] {
-                cell.configureCell(pokemon)
+            var pokemon : Pokemon
+            
+            if isSearchMode {
+                pokemon = filteredPokedex[indexPath.row]
             } else {
-                
-                cell.showLoading()
-                
-                let URL = "\(Constants.URL_POKEMON)\(indexPath.row + 1)"
-                debugPrint("Cell request URL -> \(URL)")
-                
-                Alamofire.request(.GET, URL).responseObject { (response: Response<Pokemon, NSError>) -> Void in
-                    
-                    if let error = response.result.error {
-                        cell.showError(error)
-                    } else {
-                        let pokemon = response.result.value!
-                        pokemon.pokeId = indexPath.row + 1
-                        self._pokedex[pokemon.pokeId!] = pokemon
-                        
-                        cell.configureCell(pokemon)
-                    }
-                }
+                pokemon = pokedex[indexPath.row]
             }
+            
+            cell.configureCell(pokemon)
             
             return cell
         } else {
@@ -58,19 +121,26 @@ UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
         }
     }
     
-    func collectionView(collectionView: UICollectionView, didEndDisplayingCell cell: UICollectionViewCell, forItemAtIndexPath indexPath: NSIndexPath) {
-        if let pokeCell = cell as? PokeDexCell {
-            pokeCell.stop()
-        }
-    }
-    
     func collectionView(collectionView: UICollectionView, didSelectItemAtIndexPath indexPath: NSIndexPath) {
+       
+        var pokemon : Pokemon
         
-        // when item is selected
+        if isSearchMode {
+            pokemon = filteredPokedex[indexPath.row]
+        } else {
+            pokemon = pokedex[indexPath.row]
+        }
+
+        performSegueWithIdentifier("PokemonDetail", sender: pokemon)
     }
     
     func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return 718
+        
+        if isSearchMode {
+            return filteredPokedex.count
+        }
+        
+        return pokedex.count
     }
     
     func numberOfSectionsInCollectionView(collectionView: UICollectionView) -> Int {
@@ -82,7 +152,18 @@ UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     
     func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAtIndexPath indexPath: NSIndexPath) -> CGSize {
         
-        return CGSize(width: 110, height: 110)
+        return CGSize(width: 100, height: 100)
+    }
+    
+    
+    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+        if segue.identifier == "PokemonDetail" {
+            if let dest = segue.destinationViewController as? PokemonDetailViewController {
+                if let pokemon = sender as? Pokemon {
+                    dest.pokemon = pokemon
+                }
+            }
+        }
     }
 }
 
